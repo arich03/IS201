@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sun Collector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #87CEEB;
+            margin: 0;
+            padding: 0;
+        }
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sun {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+            cursor: pointer;
+            animation: float 3s linear infinite;
+            background-color: yellow;
+            z-index: 2; /* Ensure suns are above clouds */
+        }
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0); }
+        }
+        .flower {
+            position: absolute;
+            bottom: 50px; /* Adjusted to show the stem */
+            left: calc(50% - 30px);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #e91e63; /* Pink color for rose */
+            z-index: 1;
+            display: none; /* Initially hidden */
+            background-image: radial-gradient(circle at 30% 30%, #ffeb3b 15%, #e91e63 20%), 
+                              radial-gradient(circle at 70% 30%, #ffeb3b 15%, #e91e63 20%), 
+                              radial-gradient(circle at 50% 70%, #ffeb3b 15%, #e91e63 20%);
+            background-size: 100% 100%;
+        }
+        .stem {
+            position: absolute;
+            width: 10px;
+            bottom: 0;
+            left: calc(50% - 5px);
+            background-color: green;
+            transition: height 0.5s;
+        }
+        .cloud {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            z-index: 1; /* Ensure clouds are below suns */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            z-index: 1000;
+            display: none;
+        }
+        .popup p {
+            margin: 10px 0;
+            text-align: center;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <div class="score" id="score">Suns Collected: 0</div>
+        <div id="flowerContainer">
+            <div class="stem" id="stem" style="height: 50px;"></div>
+            <div class="flower" id="flower"></div>
+        </div>
+        <div class="button-container">
+            <button id="playPauseButton">Pause</button>
+            <button id="resetButton">Reset</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="popup" id="popup">
+        <p>Welcome to Sun Collector!</p>
+        <p>Click on the suns to grow your flower. The flower will bloom once you collect 12 suns!</p>
+        <p>Watch out for clouds! They will block the suns when they pass in front of them.</p>
+        <button id="beginButton">Begin</button>
+    </div>
+
+    <div class="popup" id="winPopup">
+        <p>You Won!</p>
+        <p>Your flower has bloomed beautifully!</p>
+        <button id="closeWinPopup">Close</button>
+    </div>
+
+    <audio id="collectSound" src="path_to_your_sound_file.mp3" preload="auto"></audio>
+
+    <script>
+        const gameContainer = document.getElementById('gameContainer');
+        const scoreDisplay = document.getElementById('score');
+        const stem = document.getElementById('stem');
+        const flower = document.getElementById('flower');
+        const playPauseButton = document.getElementById('playPauseButton');
+        const resetButton = document.getElementById('resetButton');
+        const overlay = document.getElementById('overlay');
+        const popup = document.getElementById('popup');
+        const beginButton = document.getElementById('beginButton');
+        const winPopup = document.getElementById('winPopup');
+        const closeWinPopup = document.getElementById('closeWinPopup');
+        const collectSound = document.getElementById('collectSound');
+
+        let sunsCollected = 0;
+        let stemHeight = 50; // Initial height
+        let gameInterval;
+        let cloudInterval;
+        let isPaused = true;
+        let suns = [];
+        let clouds = [];
+
+        function createSun() {
+            const sun = document.createElement('div');
+            sun.classList.add('sun');
+            const size = Math.random() * 30 + 40; // Increased minimum size to 40 pixels
+            sun.style.width = `${size}px`;
+            sun.style.height = `${size}px`;
+            sun.style.top = `${Math.random() * (window.innerHeight - 100)}px`;
+            sun.style.left = `${Math.random() * (window.innerWidth - 50)}px`;
+            suns.push(sun); // Add sun to the array
+
+            sun.addEventListener('click', () => {
+                collectSound.play();
+                sunsCollected++;
+                scoreDisplay.textContent = `Suns Collected: ${sunsCollected}`;
+                stemHeight += 15; // Increased growth per sun collected
+                stem.style.height = `${stemHeight}px`;
+
+                // Stop creating new suns and remove existing ones after 12 suns
+                if (sunsCollected >= 12) {
+                    clearInterval(gameInterval); // Stop creating new suns
+                    suns.forEach(sun => sun.remove()); // Remove remaining suns
+                    clouds.forEach(cloud => cloud.remove()); // Remove clouds
+                    flower.style.display = 'block'; // Show flower
+                    flower.style.bottom = `${stemHeight}px`; // Match flower height with stem
+                    
+                    // Show the flower for 2 seconds before winning popup
+                    setTimeout(() => {
+                        winPopup.style.display = 'block'; // Show win popup
+                    }, 2000);
+                }
+
+                sun.remove();
+                suns.splice(suns.indexOf(sun), 1); // Remove sun from array
+
+                // Bonus scoring
+                if (sunsCollected % 5 === 0) {
+                    alert('Bonus! You collected 5 suns!');
+                    stemHeight += 10; // Increase height for bonus
+                    stem.style.height = `${stemHeight}px`;
+                }
+            });
+
+            gameContainer.appendChild(sun);
+
+            setTimeout(() => {
+                if (sun.parentElement) {
+                    sun.classList.add('flashing');
+                    setTimeout(() => {
+                        sun.remove();
+                    }, 1000); // Flash for 1 second
+                }
+            }, 3000); // Start flashing after 3 seconds
+        }
+
+        function createCloud() {
+            const cloud = document.createElement('div');
+            cloud.classList.add('cloud');
+            const size = Math.random() * 100 + 60; // Bigger size for clouds
+            cloud.style.width = `${size}px`;
+            cloud.style.height = `${size / 2}px`;
+            cloud.style.top = `${Math.random() * (window.innerHeight / 2)}px`;
+            cloud.style.left = `${Math.random() < 0.5 ? -size : window.innerWidth}px`; // Randomly start from left or right
+
+            // Animate cloud movement
+            const moveCloud = setInterval(() => {
+                const cloudLeft = parseFloat(cloud.style.left);
+                cloud.style.left = `${cloudLeft + (cloudLeft < 0 ? 1 : -1)}px`; // Move towards the center
+
+                if (cloudLeft < -size || cloudLeft > window.innerWidth) {
+                    clearInterval(moveCloud);
+                    cloud.remove(); // Remove cloud if it goes off-screen
+                }
+            }, 35); // Move every 35 milliseconds
+
+            clouds.push(cloud); // Add cloud to the array
+            gameContainer.appendChild(cloud);
+        }
+
+        function startGame() {
+            gameInterval = setInterval(createSun, 1000); // Create a new sun every second
+            cloudInterval = setInterval(createCloud, 3000); // Create a new cloud every 3 seconds
+            isPaused = false;
+            playPauseButton.textContent = "Pause";
+        }
+
+        function pauseGame() {
+            clearInterval(gameInterval);
+            clearInterval(cloudInterval);
+            isPaused = true;
+            playPauseButton.textContent = "Play";
+
+            // Stop movement of suns and clouds
+            suns.forEach(sun => {
+                sun.style.animationPlayState = 'paused'; // Pause sun animation
+            });
+
+            clouds.forEach(cloud => {
+                cloud.style.animationPlayState = 'paused'; // Pause cloud animation
+            });
+        }
+
+        playPauseButton.addEventListener('click', () => {
+            if (isPaused) {
+                startGame();
+            } else {
+                pauseGame();
+            }
+        });
+
+        resetButton.addEventListener('click', () => {
+            pauseGame();
+            sunsCollected = 0;
+            stemHeight = 50;
+            stem.style.height = `${stemHeight}px`;
+            flower.style.display = 'none'; // Hide flower
+            flower.style.bottom = '50px'; // Reset flower position
+            scoreDisplay.textContent = `Suns Collected: ${sunsCollected}`;
+            suns.forEach(sun => sun.remove());
+            clouds.forEach(cloud => cloud.remove()); // Remove clouds
+            overlay.style.display = 'block';
+            popup.style.display = 'block';
+        });
+
+        beginButton.addEventListener('click', () => {
+            overlay.style.display = 'none';
+            popup.style.display = 'none';
+            startGame();
+        });
+
+        closeWinPopup.addEventListener('click', () => {
+            winPopup.style.display = 'none';
+            resetButton.click(); // Reset the game when closing win popup
+        });
+
+        // Start with the popup visible
+        overlay.style.display = 'block';
+        popup.style.display = 'block';
+    </script>
+</body>
+</html>

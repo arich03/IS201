@@ -1,0 +1,41 @@
+.listSection{
+  font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-weight: bold;
+  font-style: oblique;
+  color:black ;
+  line-height: 25px;
+  margin-bottom: 40px;
+  width: 45%;
+}
+p{
+  margin-bottom: 40px;
+}
+
+.classBody{
+  background-color: bisque;
+  display: block;
+  margin: 15px;
+}
+.classHeader{
+  background-color:#f79090 ;
+  padding: 5px;
+  text-align: center;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+.classFooter{
+  background-color: #f79090;
+  padding: 5px;
+  text-align: center;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+
+/*At least three divs for positioning and styling blocks of content in the HTML page */
+
+
+.videocontainer{
+  margin: 25px;
+  text-align: center;
+}
